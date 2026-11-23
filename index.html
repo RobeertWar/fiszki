@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fiszki techniczne</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fiszki">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10161d" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Layout: one-screen app; a technical-drawing title block as the card, two thumb buttons at the bottom */
+:root {
+  --bg: #eef1f4;
+  --paper: #fbfcfd;
+  --ink: #18222e;
+  --muted: #5d6b7a;
+  --line: #c9d2db;
+  --accent: #1f5fa8;
+  --know: #1d7a4f;
+  --know-bg: #e3f2ea;
+  --miss: #b3412e;
+  --miss-bg: #f8e6e2;
+  --warn: #9a6a00;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10161d; --paper: #18212b; --ink: #e6ecf2; --muted: #93a2b1; --line: #2e3b49;
+  --accent: #6fa8e8; --know: #5cc492; --know-bg: #173226; --miss: #ef8a76; --miss-bg: #3a1f1a; --warn: #e2b450;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10161d; --paper: #18212b; --ink: #e6ecf2; --muted: #93a2b1; --line: #2e3b49;
+  --accent: #6fa8e8; --know: #5cc492; --know-bg: #173226; --miss: #ef8a76; --miss-bg: #3a1f1a; --warn: #e2b450;
+  color-scheme: dark }
+
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.app {
+  height: 100%; max-width: 560px; margin: 0 auto; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 14px;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.top h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+.backup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.backup label { text-align: center; }
+.iconbtn { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 14px; color: var(--muted); }
+
+/* home */
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--paper); border-radius: 6px; }
+.stat { padding: 10px 8px; border-left: 1px solid var(--line); min-width: 0; }
+.stat:first-child { border-left: 0; }
+.stat b { display: block; font-family: var(--mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat.due b { color: var(--accent); }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--paper); }
+.seg button { border: 0; border-left: 1px solid var(--line); background: none; padding: 11px 4px; font-size: 15px; font-weight: 500; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.primary { border: 0; border-radius: 10px; background: var(--accent); color: #fff; padding: 16px; font-size: 17px; font-weight: 600; }
+:root[data-theme="dark"] .primary { color: #0d1620; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { color: #0d1620; } }
+.secondary { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 13px; font-size: 15px; font-weight: 500; }
+.note { font-size: 13px; color: var(--muted); line-height: 1.45; margin: 0; }
+.hard { border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.hard-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--line); align-items: center; }
+.hard-row:first-child { border-top: 0; }
+.hard-row .w { min-width: 0; }
+.hard-row .w b { font-weight: 600; }
+.hard-row .w div { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.pill { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.h { background: var(--miss-bg); color: var(--miss); }
+.pill.m { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.pill.e { background: var(--know-bg); color: var(--know); }
+.empty { padding: 14px 12px; font-size: 14px; color: var(--muted); }
+
+/* study */
+.progress { display: flex; align-items: center; gap: 10px; }
+.bar { flex: 1; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s; }
+.card {
+  flex: 1; min-height: 220px; position: relative; display: flex; flex-direction: column;
+  background: var(--paper); border: 1.5px solid var(--ink); border-radius: 2px; outline-offset: 3px;
+}
+.card::before { content: ""; position: absolute; inset: 5px; border: 1px solid var(--line); pointer-events: none; }
+.card .face { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 22px; text-align: center; }
+.word { font-size: clamp(26px, 8vw, 38px); font-weight: 600; line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; }
+.answer { font-size: 20px; color: var(--accent); line-height: 1.35; text-wrap: balance; overflow-wrap: anywhere; }
+.hint { font-size: 13px; color: var(--muted); }
+.tblock { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--ink); margin: 0 5px 5px; }
+.tblock div { padding: 6px 8px; border-left: 1px solid var(--line); min-width: 0; }
+.tblock div:first-child { border-left: 0; }
+.tblock small { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tblock span { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prev { min-height: 20px; font-size: 13px; color: var(--muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prev b { color: var(--ink); font-weight: 600; }
+.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.answers button { border: 0; border-radius: 12px; padding: 20px 8px; font-size: 18px; font-weight: 600; }
+.b-miss { background: var(--miss-bg); color: var(--miss); }
+.b-know { background: var(--know-bg); color: var(--know); }
+.answers button:active, .primary:active, .secondary:active { transform: scale(.98); }
+.studybar { display: flex; justify-content: space-between; gap: 10px; }
+
+/* summary */
+.sum-list { border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 id="title">Fiszki techniczne</h1>
+  </header>
+
+  <!-- HOME -->
+  <section class="view" id="home">
+    <div class="stats" aria-label="Postęp">
+      <div class="stat due"><b id="sDue">0</b><span>na dziś</span></div>
+      <div class="stat"><b id="sNew">0</b><span>nowe</span></div>
+      <div class="stat"><b id="sLearn">0</b><span>w nauce</span></div>
+      <div class="stat"><b id="sDone">0</b><span>opanowane</span></div>
+    </div>
+
+    <div class="group">
+      <div class="label">Pokazuj słowo po</div>
+      <div class="seg" id="dirSeg">
+        <button id="dir-en" data-v="en">angielsku</button>
+        <button id="dir-pl" data-v="pl">polsku</button>
+        <button id="dir-mix" data-v="mix">losowo</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="label">Nowych słów na sesję</div>
+      <div class="seg" id="newSeg">
+        <button id="new-5" data-v="5">5</button>
+        <button id="new-10" data-v="10">10</button>
+        <button id="new-20" data-v="20">20</button>
+      </div>
+    </div>
+
+    <button class="primary" id="startBtn">Zacznij</button>
+    <button class="secondary" id="extraBtn">Powtórz najtrudniejsze teraz</button>
+    <p class="note" id="homeNote"></p>
+
+    <div class="group">
+      <div class="label">Najtrudniejsze słowa</div>
+      <div class="hard" id="hardList"></div>
+    </div>
+    <div class="group">
+      <div class="label">Kopia zapasowa postępu</div>
+      <div class="backup">
+        <button class="secondary" id="exportBtn">Zapisz kopię</button>
+        <label class="secondary" for="importFile">Wczytaj kopię</label>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <p class="note" id="backupMsg" hidden></p>
+      <p class="note">Postęp jest zapisany tylko w tym telefonie. Usunięcie aplikacji z ekranu kasuje go, więc co jakiś czas zapisz kopię w Plikach albo iCloud.</p>
+    </div>
+    <p class="note">Każdy kierunek (EN→PL i PL→EN) ma osobny postęp. Słowo, którego nie wiesz, wraca w tej samej sesji, aż odpowiesz „Wiem” dwa razy z rzędu. Łatwe słowa wracają po coraz dłuższej przerwie (1, 3, 8, 20 dni…), a trudne częściej.</p>
+  </section>
+
+  <!-- STUDY -->
+  <section class="view" id="study" hidden>
+    <div class="progress">
+      <span class="label" id="pText">0 / 0</span>
+      <div class="bar"><i id="pBar"></i></div>
+    </div>
+    <div class="card" id="card" tabindex="0" role="button" aria-label="Pokaż tłumaczenie">
+      <div class="face">
+        <div class="label" id="cDir">EN → PL</div>
+        <div class="word" id="cWord"></div>
+        <div class="answer" id="cAns" hidden></div>
+        <div class="hint" id="cHint">Dotknij, żeby sprawdzić</div>
+      </div>
+      <div class="tblock">
+        <div><small>Nr</small><span id="cNo">—</span></div>
+        <div><small>Próba</small><span id="cTry">—</span></div>
+        <div><small>Ocena</small><span id="cGrade">—</span></div>
+      </div>
+    </div>
+    <div class="prev" id="prev"></div>
+    <div class="answers">
+      <button class="b-miss" id="missBtn">Nie wiem</button>
+      <button class="b-know" id="knowBtn">Wiem</button>
+    </div>
+    <div class="studybar">
+      <button class="iconbtn" id="undoBtn" disabled>Cofnij</button>
+      <button class="iconbtn" id="endBtn">Zakończ</button>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="view" id="summary" hidden>
+    <div class="label">Koniec sesji</div>
+    <div class="stats">
+      <div class="stat"><b id="rCards">0</b><span>słów</span></div>
+      <div class="stat"><b id="rFirst">0</b><span>od razu</span></div>
+      <div class="stat"><b id="rClicks">0</b><span>odpowiedzi</span></div>
+      <div class="stat"><b id="rTough">0</b><span>trudne</span></div>
+    </div>
+    <div class="group">
+      <div class="label">Ile razy trzeba było powtórzyć</div>
+      <div class="sum-list" id="sumList"></div>
+    </div>
+    <button class="primary" id="homeBtn">Wróć</button>
+  </section>
+</div>
+
+<script>
+const CARDS = [["thread","gwint"],["nut","nakrętka"],["washer","podkładka"],["pliers","kombinerki"],["nail","gwóźdź"],["power drill","wiertarka"],["width","szerokość"],["length","długość"],["height","wysokość"],["narrow","wąski"],["wide","szeroki"],["thicker","grubszy"],["thinner","cieńszy"],["to screw it on","wkręcać, przykręcać"],["unscrew it","odkręć to"],["I'm fed up with it","mam tego dość"],["to complain","skarżyć się"],["innocent","niewinny"],["to pull out something","wyciągnąć coś"],["overview","przegląd"],["power supply","zasilacz"],["appendix","dodatek (załącznik w dokumencie)"],["abbreviations","skróty"],["initial","początkowy"],["desirable","pożądany"],["fuse","bezpiecznik"],["circuit","obwód"],["overall","ogólny"],["remark","uwaga"],["earthquake","trzęsienie ziemi"],["taken over","przejęty"],["recessed","wpuszczony (wpuszczone)"],["aperture","przysłona, otwór"],["fulfills","spełnia, wypełnia"],["to dispose of","pozbyć się (! \"dysponować\" = to have at one's disposal)"],["violation","naruszenie"],["bare","goły"],["dummy","atrapa"],["circuit breakers","wyłączniki nadprądowe"],["besides","poza tym"],["peripherals","urządzenia peryferyjne"],["threshold","próg"],["crimp termination","końcówka zaciskana"],["latch","zatrzask"],["differential pressure","różnica ciśnień"],["compartment","przedział"],["passing of cables","przekazywanie (przeprowadzenie) kabli"],["depressurization","dekompresja"],["inlet","wlot"],["qualified","przygotowany, wykwalifikowany"],["troubleshooting","rozwiązywanie problemów"],["handling","obsługa"],["explicit","wyraźny"],["hazards","zagrożenia"],["to withstand","wytrzymać"],["mandatory","obowiązkowy"],["arises","powstaje"],["to take over","przejąć"],["certain","pewny"],["coat, coating","powłoka"],["thickness","grubość"],["routing (of cables)","prowadzenie (kabli)"],["earth fault","zwarcie doziemne (w aplikacji: uziemienie z ziemią)"],["to suppress","stłumić"],["mitered","ścięty (pod kątem)"],["fastener","łącznik"],["desire","pragnienie, pożądanie"],["distinct","odrębny"],["collapse items","zwiń elementy"],["slightly","nieznacznie"],["articulated","przegubowy"],["winch","wyciągarka"],["crane","dźwig"],["hoisting","podnoszenie"],["applied","stosowany"],["duration","czas trwania"],["splitter","rozdzielacz"],["to unfasten","odpiąć"],["nearby","pobliski"],["to exclude","wykluczać"],["to evaluate","oceniać"],["arched, arcuated","łukowaty"],["unless","dopóki nie, chyba że"],["to assign","przydzielać"],["to enroll","zapisać się"],["pillar","filar"],["inquiry (RFQ)","zapytanie ofertowe"],["leakage","wyciek"],["reliability","niezawodność"],["area, surface","powierzchnia"],["intermediate","pośredni"],["doubt","wątpliwość"],["highlight","podświetlenie, podkreślenie"],["to participate","uczestniczyć"],["purchase","zakup"],["intended","zamierzony"],["leads to","prowadzi do"],["typically","zazwyczaj"],["to obtain","uzyskać"],["establishment","ustanowienie"],["chairman","przewodniczący"],["introduction","wprowadzenie"],["significant","znaczący"],["approximation","przybliżenie"],["rivet nut","nitonakrętka"],["exact, accurate","dokładny"],["due to","spowodowany (z powodu)"],["It's very kind of you","to bardzo miło z twojej strony"],["basically","zasadniczo"],["significantly","znacząco"],["announced","ogłosił"],["at last","wreszcie, nareszcie"],["especially","zwłaszcza, szczególnie"],["relevant","istotny"],["to refrain (from), to restrain","powstrzymać się"],["to comply (with)","zastosować się"],["associated","powiązany"],["while, during","podczas"],["finally","wreszcie, w końcu"],["upon","po, na"],["minor","niepełnoletni; mniejszy"],["otherwise","inaczej, w przeciwnym razie"],["awkward","niezręczny"],["pleased","zadowolony"],["to find out","odkryć, dowiedzieć się"],["to announce","ogłosić"],["flange","kołnierz"],["bend","zagięcie"],["expires","wygasa"],["hose","wąż gumowy"],["multiply by five","pomnożyć przez pięć"],["sorry for being late","przepraszam za spóźnienie"],["following up, follow-up","kontynuowanie (dalsze działania)"],["to appreciate","doceniać"],["approach","podejście"],["to admit","przyznać"],["to provide","zapewniać, dostarczać"],["to require","wymagać"],["impact","wpływ"],["to consider","rozważać"],["demand","żądanie, popyt"],["idle","bezczynny"],["ducts","kanały"],["tilt point","punkt przechyłu"],["mysterious","tajemniczy"],["to ensure","zapewnić"],["buffer","bufor"],["enclosure","obudowa"],["truly","naprawdę"],["to accumulate, stacking up","nagromadzić"],["compound, complex","złożony, skomplikowany"],["rust","rdza"],["What is the price?","jaka jest cena?"],["defined","zdefiniowane"],["in conclusion","podsumowując"],["batch","partia"],["in another way","w inny sposób"],["molding","odlewanie, formowanie"],["casting","odlew"],["cast iron","żeliwo"],["it gives us","to nam daje"],["I have seen so far","widziałem do tej pory"],["looks like we have a go-ahead","wygląda, że zostało zaakceptowane"],["inch","cal"],["to route up","kierować w górę"],["on the other hand","z drugiej strony"],["ability","umiejętność"],["to solder","lutować"],["deal breakers","rzeczy nie do zaakceptowania"],["annoyed","zirytowany"],["robust","solidny"],["their point of view","ich punkt widzenia"],["uneven","nierówny"],["(not) at all","w ogóle"],["exclusively","wyłącznie"],["to assume","założyć (przypuszczać)"],["to quote","wyceniać"],["terminated","zakończony"],["readings","odczyty"],["to encourage","zachęcać"],["capabilities","zdolności, możliwości"],["confused","zdezorientowany"],["attempt","próba"],["calm","spokojny"],["coincidence","zbieżność, zbieg okoliczności"],["humble","pokorny"],["establishing details","ustalanie szczegółów"],["to run back and forth","biegać tam i z powrotem"],["initialization","inicjalizacja"],["domestic","krajowy"],["obsolete","przestarzały"],["to adjust","dostosować"],["to injure","zranić"],["despite","pomimo"],["to settle","rozstrzygać"],["to derive (benefit from)","czerpać korzyści z"],["engraving","grawerowanie"],["to regret","żałować"],["sandblasted","piaskowany"],["concave","wklęsły"],["up front","z przodu, z góry (wcześniej)"],["to refuse","odrzucać, odmawiać"],["(access) granted","udzielenie dostępu"],["running smoothly","działa bez zarzutu"],["urgent","pilne"],["coming back to the topic","wracając do tematu"],["supposed to","powinien"],["grounding","uziemienie"],["roughly","w przybliżeniu"],["flexible","elastyczny"],["at least","przynajmniej"],["directly","bezpośrednio"],["quite","całkiem"],["to emphasize","podkreślać"],["familiar","znajomy"],["purpose","cel"],["to afford","pozwolić sobie"],["across, throughout","przez całość"],["insufficient","niewystarczający"],["stiff","sztywny"],["movement","ruch"],["forward","do przodu"],["backward","do tyłu"],["cable glands","dławiki kablowe"],["gasket","uszczelka"],["bending radius","promień gięcia"],["to remain","pozostawać"],["elbow","łokieć (też: kolanko rury)"],["self-tapping screw","blachowkręt"],["permanently","na stałe"],["conical","stożkowy"],["summit","szczyt"],["preliminary","wstępny"],["tin","cyna"],["and so on","i tak dalej"],["sealed","uszczelniony"],["to squeeze","ściskać"],["precisely","precyzyjnie"],["grade","stopień"],["willing","skłonny, chętny"],["outskirts","peryferie"],["upsetting","denerwujące"],["deviations","odchylenia"],["appropriately, accordingly","odpowiednio (! \"apparently\" = najwyraźniej)"],["tough question","trudne pytanie"],["radish","rzodkiewka"],["sibling","rodzeństwo"],["anxiety","niepokój"],["radius","promień"],["handmade","wykonany ręcznie"],["occurrence","wystąpienie"],["severity","powaga"],["shavings","wióry"],["to confirm","potwierdzić"],["to reach out (to someone)","skontaktować się z kimś"],["to get rid of","pozbyć się"],["just a moment","chwileczkę"],["so far","jak dotąd"]];
+const DAY = 86400000;
+const KEY = "fiszki-tech-v1";
+
+// ---------- state ----------
+function blankState() { return { v: 1, updatedAt: 0, settings: { dir: "en", newPer: 10 }, cards: {} }; }
+let state = blankState();
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.v === 1) state = s; } catch (e) {}
+
+const byEn = new Map(CARDS.map(([en, pl], i) => [en, { en, pl, i }]));
+const ck = (en, dir) => en + "|" + dir;          // progress key per word and direction
+function prog(k) { return state.cards[k]; }
+
+// day boundary at 4:00 local, so late-night sessions count as the same day
+function dayStart(t) { const d = new Date(t - 4 * 3600000); d.setHours(0, 0, 0, 0); return d.getTime() + 4 * 3600000; }
+function dirsForSettings() { return state.settings.dir === "mix" ? ["en", "pl"] : [state.settings.dir]; }
+
+// difficulty: e = easy, m = medium, h = hard
+function grade(p) {
+  if (!p || !p.reps) return null;
+  const last = p.hist[p.hist.length - 1] || 1;
+  if (p.ease < 1.9 || last >= 5 || p.maxTries >= 8) return "h";
+  if (p.ease < 2.4 || last >= 2) return "m";
+  return "e";
+}
+const gradeName = { e: "łatwe", m: "średnie", h: "trudne" };
+
+function counts() {
+  const now = Date.now(), dirs = dirsForSettings();
+  let due = 0, nw = 0, learn = 0, done = 0;
+  for (const [en] of CARDS) for (const d of dirs) {
+    const p = prog(ck(en, d));
+    if (!p) nw++;
+    else { if (p.due <= now) due++; if (p.interval >= 21) done++; else learn++; }
+  }
+  return { due, nw, learn, done };
+}
+
+// ---------- persistence: everything stays on this phone ----------
+function persist() {
+  state.updatedAt = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+// ask the browser not to evict data of the installed app
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+// backup: save progress as a file (Files / iCloud) and restore it later
+async function exportBackup() {
+  const name = "fiszki-postep-" + new Date().toISOString().slice(0, 10) + ".json";
+  const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
+  try {
+    const file = new File([blob], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); setBackupMsg("Kopia gotowa. Zapisz ją w Plikach albo iCloud."); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  setBackupMsg("Kopia zapisana jako " + name + ".");
+}
+function importBackup(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const s = JSON.parse(r.result);
+      if (!s || s.v !== 1 || typeof s.cards !== "object") throw 0;
+      state = s; persist(); renderHome();
+      setBackupMsg("Wczytano postęp: " + Object.keys(s.cards).length + " zapamiętanych pozycji.");
+    } catch (e) { setBackupMsg("To nie jest plik kopii z tej aplikacji. Wybierz plik fiszki-postep-….json."); }
+  };
+  r.readAsText(file);
+}
+function setBackupMsg(t) { const el = document.getElementById("backupMsg"); el.textContent = t; el.hidden = !t; }
+
+// ---------- session ----------
+// item: { en, dir, tries, misses, streak, need }
+let session = null, undoStack = [];
+
+function buildSession(extra) {
+  const now = Date.now(), dirs = dirsForSettings();
+  const items = [];
+  if (extra) {
+    // practice the hardest words regardless of schedule
+    const all = [];
+    for (const [en] of CARDS) for (const d of dirs) { const p = prog(ck(en, d)); if (p) all.push({ en, d, s: p.ease - (p.hist[p.hist.length - 1] || 1) * 0.05 }); }
+    all.sort((a, b) => a.s - b.s);
+    all.slice(0, 15).forEach(x => items.push(newItem(x.en, x.d)));
+  } else {
+    const due = [];
+    for (const [en] of CARDS) for (const d of dirs) { const p = prog(ck(en, d)); if (p && p.due <= now) due.push({ en, d, due: p.due, ease: p.ease }); }
+    // most overdue and hardest first
+    due.sort((a, b) => a.due - b.due || a.ease - b.ease);
+    due.slice(0, 60).forEach(x => items.push(newItem(x.en, x.d)));
+    // new words in list order; in mixed mode each new word gets a random direction
+    let added = 0;
+    for (const [en] of CARDS) {
+      if (added >= state.settings.newPer) break;
+      const free = dirs.filter(d => !prog(ck(en, d)));
+      if (state.settings.dir === "mix" ? free.length === 2 : free.length) {
+        const d = state.settings.dir === "mix" ? free[Math.random() < .5 ? 0 : 1] : free[0];
+        items.push(newItem(en, d)); added++;
+      }
+    }
+  }
+  if (!items.length) return null;
+  shuffleLight(items);
+  return { queue: items, total: items.length, done: [], clicks: 0, shown: false, prev: null, extra: !!extra };
+}
+function newItem(en, dir) { return { en, dir, tries: 0, misses: 0, streak: 0, need: 1 }; }
+function shuffleLight(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
+
+function answer(know) {
+  if (!session || !session.queue.length) return;
+  const it = session.queue[0];
+  const k = ck(it.en, it.dir);
+  undoStack.push(JSON.stringify({ session, card: state.cards[k] || null, k }));
+  if (undoStack.length > 20) undoStack.shift();
+
+  session.queue.shift();
+  session.clicks++;
+  it.tries++;
+  const c = byEn.get(it.en);
+  session.prev = { q: it.dir === "en" ? c.en : c.pl, a: it.dir === "en" ? c.pl : c.en, know };
+
+  if (know) {
+    it.streak++;
+    if (it.streak >= it.need) { finish(it); session.done.push(it); }
+    else reinsert(it, 5);           // one more correct answer needed, a bit later
+  } else {
+    it.misses++; it.streak = 0; it.need = 2;
+    const p = prog(k);
+    reinsert(it, p && grade(p) === "h" ? 2 : 3); // hard words come back sooner
+  }
+  session.shown = false;
+  persist();
+  renderStudy();
+}
+function reinsert(it, gap) { session.queue.splice(Math.min(gap, session.queue.length), 0, it); }
+
+// long-term schedule, updated once per word per session
+function finish(it) {
+  const k = ck(it.en, it.dir), now = Date.now();
+  const p = state.cards[k] || { reps: 0, ease: 2.5, interval: 0, due: 0, totalTries: 0, totalMisses: 0, maxTries: 0, lapses: 0, hist: [] };
+  p.reps++; p.totalTries += it.tries; p.totalMisses += it.misses; p.maxTries = Math.max(p.maxTries, it.tries);
+  p.hist.push(it.tries); if (p.hist.length > 8) p.hist.shift();
+  p.last = now;
+  if (session.extra && p.due > now && it.misses === 0) { state.cards[k] = p; return; } // extra practice never pushes a word further out
+  if (it.misses === 0) {
+    p.ease = Math.min(3.0, p.ease + 0.1);
+    p.interval = p.interval < 1 ? 1 : p.interval < 3 ? 3 : Math.round(p.interval * p.ease);
+  } else {
+    if (p.interval >= 3) p.lapses++;
+    p.ease = Math.max(1.3, p.ease - 0.15 * Math.min(it.misses, 5));
+    p.interval = it.misses >= 3 ? 1 : Math.max(1, Math.round(p.interval * 0.4));
+  }
+  p.interval = Math.min(p.interval, 180);
+  p.due = dayStart(now) + p.interval * DAY;
+  state.cards[k] = p;
+}
+
+function undo() {
+  const u = undoStack.pop(); if (!u) return;
+  const x = JSON.parse(u);
+  session = x.session;
+  if (x.card) state.cards[x.k] = x.card; else delete state.cards[x.k];
+  persist(); renderStudy();
+}
+
+// ---------- rendering ----------
+const $ = id => document.getElementById(id);
+function show(view) { for (const v of ["home", "study", "summary"]) $(v).hidden = v !== view; }
+
+function renderHome() {
+  show("home");
+  const c = counts();
+  $("sDue").textContent = c.due; $("sNew").textContent = c.nw; $("sLearn").textContent = c.learn; $("sDone").textContent = c.done;
+  for (const b of $("dirSeg").children) b.setAttribute("aria-pressed", b.dataset.v === state.settings.dir);
+  for (const b of $("newSeg").children) b.setAttribute("aria-pressed", +b.dataset.v === state.settings.newPer);
+  const toStudy = Math.min(c.due, 60) + Math.min(c.nw, state.settings.newPer);
+  $("startBtn").textContent = toStudy ? `Zacznij (${toStudy})` : "Na dziś wszystko powtórzone";
+  $("startBtn").disabled = !toStudy;
+  $("startBtn").style.opacity = toStudy ? 1 : .5;
+  const anySeen = Object.keys(state.cards).length > 0;
+  $("extraBtn").hidden = !anySeen;
+  $("homeNote").textContent = !toStudy && c.nw === 0 ? "Wszystkie słowa w tym kierunku są już w powtórkach." : "";
+
+  // hardest words in the selected direction(s)
+  const dirs = dirsForSettings(), rows = [];
+  for (const [en] of CARDS) for (const d of dirs) { const p = prog(ck(en, d)); if (p && p.reps) rows.push({ en, d, p }); }
+  rows.sort((a, b) => a.p.ease - b.p.ease || b.p.maxTries - a.p.maxTries);
+  const list = $("hardList"); list.textContent = "";
+  const top = rows.filter(r => grade(r.p) !== "e").slice(0, 8);
+  if (!top.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.textContent = rows.length ? "Na razie żadne słowo nie sprawia trudności." : "Tu pojawią się słowa, które trzeba było powtarzać najczęściej.";
+    list.append(e);
+  }
+  for (const r of top) list.append(wordRow(r.en, r.d, r.p.maxTries + "× max", grade(r.p), nextLabel(r.p)));
+}
+function nextLabel(p) {
+  const days = Math.round((dayStart(p.due) - dayStart(Date.now())) / DAY);
+  return days <= 0 ? "powtórka dziś" : days === 1 ? "powtórka jutro" : `powtórka za ${days} dni`;
+}
+function wordRow(en, dir, pillText, g, sub) {
+  const c = byEn.get(en);
+  const row = document.createElement("div"); row.className = "hard-row";
+  const w = document.createElement("div"); w.className = "w";
+  const b = document.createElement("b"); b.textContent = dir === "en" ? c.en : c.pl;
+  const s = document.createElement("div"); s.textContent = (dir === "en" ? c.pl : c.en) + (sub ? " · " + sub : "");
+  w.append(b, s);
+  const pill = document.createElement("span"); pill.className = "pill " + (g || "m"); pill.textContent = pillText;
+  row.append(w, pill);
+  return row;
+}
+
+function renderStudy() {
+  if (!session) return renderHome();
+  if (!session.queue.length) return renderSummary();
+  show("study");
+  const it = session.queue[0], c = byEn.get(it.en), p = prog(ck(it.en, it.dir));
+  $("pText").textContent = `${session.done.length} / ${session.total}`;
+  $("pBar").style.width = (session.done.length / session.total * 100) + "%";
+  $("cDir").textContent = it.dir === "en" ? "EN → PL" : "PL → EN";
+  $("cWord").textContent = it.dir === "en" ? c.en : c.pl;
+  $("cWord").lang = it.dir === "en" ? "en" : "pl";
+  $("cAns").textContent = it.dir === "en" ? c.pl : c.en;
+  $("cAns").hidden = !session.shown;
+  $("cHint").hidden = session.shown;
+  $("cNo").textContent = String(c.i + 1).padStart(3, "0") + "/" + CARDS.length;
+  $("cTry").textContent = it.tries ? (it.tries + 1) + ". raz" : "1. raz";
+  const g = grade(p);
+  $("cGrade").textContent = p ? gradeName[g] : "nowe";
+  const pv = session.prev, prev = $("prev"); prev.textContent = "";
+  if (pv) {
+    const b = document.createElement("b"); b.textContent = pv.q;
+    prev.append(pv.know ? "✓ " : "✗ ", b, " = " + pv.a);
+  }
+  $("undoBtn").disabled = !undoStack.length;
+}
+
+function renderSummary() {
+  show("summary");
+  const d = session.done;
+  $("rCards").textContent = d.length;
+  $("rFirst").textContent = d.filter(x => x.misses === 0).length;
+  $("rClicks").textContent = session.clicks;
+  $("rTough").textContent = d.filter(x => x.tries >= 5).length;
+  const list = $("sumList"); list.textContent = "";
+  const sorted = [...d].sort((a, b) => b.tries - a.tries);
+  for (const x of sorted) {
+    const p = prog(ck(x.en, x.dir));
+    const g = x.misses === 0 ? "e" : x.tries >= 5 ? "h" : "m";
+    list.append(wordRow(x.en, x.dir, x.tries + "×", g, p ? nextLabel(p) : ""));
+  }
+  if (!d.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "Sesja przerwana przed ukończeniem pierwszego słowa."; list.append(e); }
+}
+
+// ---------- events ----------
+$("dirSeg").addEventListener("click", e => { const v = e.target.dataset && e.target.dataset.v; if (!v) return; state.settings.dir = v; persist(); renderHome(); });
+$("newSeg").addEventListener("click", e => { const v = e.target.dataset && e.target.dataset.v; if (!v) return; state.settings.newPer = +v; persist(); renderHome(); });
+$("startBtn").addEventListener("click", () => { session = buildSession(false); undoStack = []; renderStudy(); });
+$("extraBtn").addEventListener("click", () => { session = buildSession(true); undoStack = []; renderStudy(); });
+$("knowBtn").addEventListener("click", () => answer(true));
+$("missBtn").addEventListener("click", () => answer(false));
+$("undoBtn").addEventListener("click", undo);
+$("endBtn").addEventListener("click", () => { if (session) { session.queue = []; renderSummary(); } });
+$("homeBtn").addEventListener("click", () => { session = null; undoStack = []; renderHome(); });
+const flip = () => { if (session && session.queue.length) { session.shown = !session.shown; renderStudy(); } };
+$("card").addEventListener("click", flip);
+document.addEventListener("keydown", e => {
+  if ($("study").hidden) return;
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); }
+  else if (e.key === "ArrowRight" || e.key === "k") answer(true);
+  else if (e.key === "ArrowLeft" || e.key === "j") answer(false);
+});
+
+$("exportBtn").addEventListener("click", exportBackup);
+$("importFile").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if (f) importBackup(f); e.target.value = ""; });
+
+if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+renderHome();
+</script>
+</body>
+</html>
